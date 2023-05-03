@@ -533,7 +533,8 @@ flist=strjoin(string((findgen(round(max(freqs)-min(freqs)))+min(freqs)+1)/1000.0
 ;print,flist
 print,string(!g.s[0].mjd)
 spawn,'~rmaddale/bin/getForecastValues -type Opacity -freqList '+flist+' -timeList '+string(!g.s[0].mjd),result
-Tau=strmid(result,5,10,/reverse_offset)
+Taucoarse=strmid(result,5,10,/reverse_offset)
+Tau=interpol(float(Taucoarse),freqFC*1000.0,Freqs)
 ;print,'Tau:',Tau
 AM=Airmass(AveEl)
 print,'AM:',AM
@@ -614,7 +615,6 @@ endif else begin
     endif
 endelse
 end
-
 
 
 
