@@ -618,8 +618,6 @@ end
 
 
 
-
-
 ;load database vector tcal from the rcvr fits file in /home/gbtdata/
 pro load_db_tcal, infile, colname, buf, ext, tc_freq = tc_freq, tc_temp = tc_temp
 ;infile: TCAL fits file /home/gbtdata/[project]/[RcvrX_Y]/Z.fits
