@@ -1,13 +1,11 @@
 ;calculate TCal and uhh
 ;ETS 12/8/22
-;ETS added calibrate section from TCal_Calibrate.pro
-
 
 
 ;==================================================
 ;
 ;functions here
-;for procedures scroll down to line X
+;for procedures scroll down to line ~400
 ;
 ;==================================================
 
@@ -379,6 +377,26 @@ end
 
 
 
+function blankMask, arr
+
+    ; Replaces with blanks those channels in input vector ARR specified by g.region and
+    ; returns the modified vector.
+    ; from ron maddalena's nonlinear.pro
+
+    if !g.regions[0,0] LT 0 then return, arr
+    setdata, arr
+    left = 0
+    for i=0, 99 do begin
+        if !g.regions[0,i] LT 0 then break
+        if !g.regions[0,i] GT left then replace, left, !g.regions[0,i]-1, /blank
+        left=!g.regions[1,i]+1
+    end
+    if n_elements(arr) GT left then replace, left, n_elements(arr)-1, /blank
+    return, getdata()
+end
+
+
+
 
 ;=======================================================================
 ;
@@ -403,28 +421,33 @@ onsource_calon_chunk=getchunk(scan=onscan,ifnum=ifnum,plnum=plnum,fdnum=fdnum,si
 for ons_con_int=0,nons_con_chunk-1 do accum,dc=onsource_calon_chunk[ons_con_int]
 data_free,onsource_calon_chunk
 ave,/quiet
-onsource_calon_data=getdata()
+;onsource_calon_data=getdata()
+onsource_calon_data=blankMask(getdata())
 
 ;get signal scan, cal off
 onsource_caloff_chunk=getchunk(scan=onscan,ifnum=ifnum,plnum=plnum,fdnum=fdnum,sig='T',cal='F',count=nons_coff_chunk)
 for ons_coff_int=0,nons_coff_chunk-1 do accum,dc=onsource_caloff_chunk[ons_coff_int]
 data_free,onsource_caloff_chunk
 ave,/quiet
-onsource_caloff_data=getdata()
+;onsource_caloff_data=getdata()
+onsource_caloff_data=blankMask(getdata())
 
 ;get ref scan, cal on
 offsource_calon_chunk=getchunk(scan=offscan,ifnum=ifnum,plnum=plnum,fdnum=fdnum,sig='T',cal='T',count=noffs_con_chunk)
 for offs_con_int=0,noffs_con_chunk-1 do accum,dc=offsource_calon_chunk[offs_con_int]
 data_free,offsource_calon_chunk
 ave,/quiet
-offsource_calon_data=getdata()
+;offsource_calon_data=getdata()
+offsource_calon_data=blankMask(getdata())
 
 ;get ref scan, cal off
 offsource_caloff_chunk=getchunk(scan=offscan,ifnum=ifnum,plnum=plnum,fdnum=fdnum,sig='T',cal='F',count=noffs_coff_chunk)
 for offs_coff_int=0,noffs_coff_chunk-1 do accum,dc=offsource_caloff_chunk[offs_coff_int]
 data_free,offsource_caloff_chunk
 ave,/quiet
-offsource_caloff_data=getdata()
+;offsource_caloff_data=getdata()
+offsource_caloff_data=blankMask(getdata())
+
 
 
 num_chan = n_elements(offsource_caloff_data)
@@ -527,8 +550,9 @@ TCal_Cal=TCal*fluxT_Vctr
 TSys_Cal=TSys_caloff*fluxT_Vctr
 flist=strjoin(string(freqs/1000.0,format='(f8.3)'),' ')
 
-
-flist=strjoin(string((findgen(round(max(freqs)-min(freqs)))+min(freqs)+1)/1000.0,format='(f8.3)'))
+freqFC=(findgen(round(max(freqs)-min(freqs)))+min(freqs)+1)/1000.0
+flist=strjoin(string(freqFC,format='(f8.3)'))
+;flist=strjoin(string((findgen(round(max(freqs)-min(freqs)))+min(freqs)+1)/1000.0,format='(f8.3)'))
 
 ;print,flist
 print,string(!g.s[0].mjd)
@@ -570,18 +594,22 @@ Trx=TSys_Cal-Tsky-Tbg-Tspill
 
 maxnu=max(freqs)
 minnu=min(freqs)
-dnu=abs(!g.s[0].frequency_interval/1d9)
+dnu=abs(!g.s[0].frequency_interval/1d6)
 nnu=ceil((maxnu-minnu)/dnu)+1
-Freqout=(findgen(nnu)*dnu)+minnu
-Trxint=interpol(Trx,Freqs,Freqout)
-TCalint=interpol(TCal_Cal,Freqs,Freqout)
-TSysint=interpol(TSys_Cal,Freqs,Freqout)
+;Freqout=(findgen(nnu)*dnu)+minnu
+;print,n_elements(Trx)
+;print,n_elements(freqs)
+;print,n_elements(Freqout)
+
+;Trxint=interpol(Trx,Freqs,Freqout)
+;TCalint=interpol(TCal_Cal,Freqs,Freqout)
+;TSysint=interpol(TSys_Cal,Freqs,Freqout)
 
 
 setdata, TCal_Cal & !g.s[0].units = 'Tcal (K)'
-print,!g.s[0].reference_frequency
-print,!g.s[0].reference_channel
-print,(freqs[n_elements(freqs) - 1 - !g.s[0].reference_channel])*1e6
+;print,!g.s[0].reference_frequency
+;print,!g.s[0].reference_channel
+;print,(freqs[n_elements(freqs) - 1 - !g.s[0].reference_channel])*1e6
 
 !g.s[0].reference_frequency = (freqs[n_elements(freqs) - 1 - !g.s[0].reference_channel])*1e6
 show
