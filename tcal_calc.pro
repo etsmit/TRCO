@@ -406,14 +406,16 @@ end
 
 
 
-
+;onscan/offscan: scan numbers for on and off positions
+;ifnum/plnum/fdnum: IF window, polarization, feed selection
+;fileout: text file to write output to
 pro tcal_calc,onscan,offscan,ifnum=ifnum,plnum=plnum,fdnum=fdnum,fileout=fileout
 
 
 write=1
 if (n_elements(fdnum) eq 0) then fdnum = 0
 if (n_elements(fileout) eq 0) then write = 0
-;set frequencies i guess
+;get frequencies
 gettp,onscan,ifnum=ifnum,plnum=plnum,fdnum=fdnum
 
 ;get signal scan, cal on
@@ -449,20 +451,14 @@ ave,/quiet
 offsource_caloff_data=blankMask(getdata())
 
 
-
+;get some metadata and numbers for later
 num_chan = n_elements(offsource_caloff_data)
 freqs = chantofreq(!g.s[0],seq(0,num_chan-1))/1.e6
 freqs = freqs[sort(freqs)]
-;print,freqs
 fluxS_Vctr = getFluxCalib(!g.s[0].source,freqs)
 ApEff = getApEff(!g.s[0].elevation,mean(freqs))
 
-; To Convert flux to temperature scale, (TA', i.e. TA * e(tau*Airmass))
-; Run the procedure below, note that it is best to do this after stitching together the IF chunks, etc
-; From Memo #302 ap_eff=0.352 TA'/Sv
-;S_to_T = ApEff/0.352
-;fluxT_Vctr = fluxS_Vctr*S_to_T
-;multiply Temperature measurements by fluxT_Vctr
+
 
 calcounts_onsource=onsource_calon_data-onsource_caloff_data
 calcounts_offsource=offsource_calon_data-offsource_caloff_data
@@ -491,33 +487,20 @@ endif
 Tsys_calon=offsource_calon_data/sourcecounts_calon
 Tsys_caloff=offsource_caloff_data/sourcecounts_caloff
 
-flist=strjoin(string(freqs/1000.0,format='(f7.3)'),' ')
 
-
-;spawn,'~rmaddale/bin/getForecastValues -type AtmTsys -freqList '+flist+' -elev '+string(!g.s[0].elevation)+' -timeList '+string(!g.s[0].mjd),result
-;Tsky=strmid(result,5,10,/reverse_offset)
-;Tbg=2.73
-;Tspill=3.0
-;Trx=Tsys_caloff-Tsky-Tbg-Tspill
 
 ;uncalibrated vector Tcal and Tsys
 Tcal=reverse(Tcal)
 ;Trx=reverse(Trx)
 Tsys_caloff=reverse(Tsys_caloff)
 
-;setdata, Tcal & !g.s[0].units = 'Tcal (K)'
-;copy,0,1
-;setdata, Tsys_caloff & !g.s[0].units = 'Tsys (K)'
-;copy,0,2
-;print,'Tcal in buffer 1;  Tsys in buffer 2'
-;copy, 1,0
-;show
 
-
+;======================
 ;TCal_Calibrate section
 
 scannos= [onscan,offscan]
 
+;aperture efficiency correction
 ApEffArr=[-1]
 AveElevArr=[-1]
 gettp,scannos[0]
@@ -548,40 +531,37 @@ fluxT_Vctr = fluxS_Vctr*S_to_T
 
 TCal_Cal=TCal*fluxT_Vctr
 TSys_Cal=TSys_caloff*fluxT_Vctr
-flist=strjoin(string(freqs/1000.0,format='(f8.3)'),' ')
 
+
+;string version of frequencies in GHz
 freqFC=(findgen(round(max(freqs)-min(freqs)))+min(freqs)+1)/1000.0
 flist=strjoin(string(freqFC,format='(f8.3)'))
 ;flist=strjoin(string((findgen(round(max(freqs)-min(freqs)))+min(freqs)+1)/1000.0,format='(f8.3)'))
 
-;print,flist
-print,string(!g.s[0].mjd)
+
+;Opacity corrections
+print,'MJD: ',string(!g.s[0].mjd)
 spawn,'~rmaddale/bin/getForecastValues -type Opacity -freqList '+flist+' -timeList '+string(!g.s[0].mjd),result
 Taucoarse=strmid(result,5,10,/reverse_offset)
 Tau=interpol(float(Taucoarse),freqFC*1000.0,Freqs)
-;print,'Tau:',Tau
 AM=Airmass(AveEl)
 print,'AM:',AM
 
-
 ;check 2GHz and below taus are replaced by a flat value evaluated at 2GHz
+; Ron's tau calculator only goes down to 2 GHz, so we replace lower frequencies
+; with flat value at 2 GHz
 if freqs[0] lt 2000 then begin
-	print,'replacing some taus'
+	print,'Some frequencies below 2GHz, replacing some taus with 2GHz value'
 	;if partial freq range under 2
 	tau[0:(where(tau gt -9,count))[0]] = tau[(where(tau gt -9,count))[0]]
 endif
 if freqs[n_elements(freqs)-1] lt 2000 then begin
 	;if all freq range under 2
-	print,'replacing all taus'
+	print,'All Frequencies below 2GHz, replacing all taus with 2GHz value'
 	spawn,'~rmaddale/bin/getForecastValues -type Opacity -freqList 2 -timeList '+string(!g.s[0].mjd),result
 	tau[0:*] = strmid(result,5,10,/reverse_offset)
 endif
 
-;print,Tau
-
-print, freqs[0]
-print, freqs[n_elements(freqs)-1]
-print, freqs[1] - freqs[0]
 
 TCal_Cal=TCal_Cal/exp(Tau*AM)
 TSys_Cal=TSys_Cal/exp(Tau*AM)
@@ -592,24 +572,10 @@ Tbg=2.73
 Tspill=3.0
 Trx=TSys_Cal-Tsky-Tbg-Tspill
 
-maxnu=max(freqs)
-minnu=min(freqs)
-dnu=abs(!g.s[0].frequency_interval/1d6)
-nnu=ceil((maxnu-minnu)/dnu)+1
-;Freqout=(findgen(nnu)*dnu)+minnu
-;print,n_elements(Trx)
-;print,n_elements(freqs)
-;print,n_elements(Freqout)
-
-;Trxint=interpol(Trx,Freqs,Freqout)
-;TCalint=interpol(TCal_Cal,Freqs,Freqout)
-;TSysint=interpol(TSys_Cal,Freqs,Freqout)
 
 
+;populate data buffers
 setdata, TCal_Cal & !g.s[0].units = 'Tcal (K)'
-;print,!g.s[0].reference_frequency
-;print,!g.s[0].reference_channel
-;print,(freqs[n_elements(freqs) - 1 - !g.s[0].reference_channel])*1e6
 
 !g.s[0].reference_frequency = (freqs[n_elements(freqs) - 1 - !g.s[0].reference_channel])*1e6
 show
@@ -623,7 +589,7 @@ copy, 1,0
 show,0
 
 
-
+;write out frequency, Tcal, Tsys to text file
 if write eq 0 then begin
     print,'Freq (GHz)','TCal (K)','TSys (K)',format="(A14,A14,A14)"
     print,'----------','--------','--------',format="(A14,A14,A14)"
@@ -654,17 +620,13 @@ pro load_db_tcal, infile, colname, buf, ext, tc_freq = tc_freq, tc_temp = tc_tem
 ;ext: extension number in fits file. corresponds to diff pols. use fv to pick the right one
 
 tcal_data = readfits(infile,hdr,exten_no=ext)
-
 tc_freq = tbget(hdr,tcal_data,'FREQUENCY')
-
 tc_temp = tbget(hdr,tcal_data,colname)
 
 setdata, tc_temp
-;!g.s[0].reference_frequency = tc_freq[!g.s[0].reference_channel]
 !g.s[0].reference_frequency = tc_freq[n_elements(tc_freq) - 1 - !g.s[0].reference_channel]
-;!g.s[0].frequency_resolution = tc_freq[1] - tc_freq[0]
+
 show
 copy,0,buf
-
 
 end
