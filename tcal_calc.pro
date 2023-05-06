@@ -1,6 +1,6 @@
 ;calculate TCal
 ;ETS 5/3/23
-
+;this is hosted at github/etsmit/TRCO
 
 ;==================================================
 ;
