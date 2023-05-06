@@ -460,6 +460,8 @@ ApEff = getApEff(!g.s[0].elevation,mean(freqs))
 
 
 
+;Tcal calculation
+;also find mean/deviation of inner 80%
 calcounts_onsource=onsource_calon_data-onsource_caloff_data
 calcounts_offsource=offsource_calon_data-offsource_caloff_data
 sourcecounts_calon=onsource_calon_data-offsource_calon_data
@@ -477,7 +479,7 @@ Tcal=(calonsource+caloffsource)/2.0
 
 
 
-
+; check that on and off scans are similar levels
 if (diffmean gt 1.0) or (diffsd gt 5.0) then begin
     print,'difference in means of on and off scans - ',diffmean
     print,'difference in standard deviations of on and off scans - ',diffsd
@@ -490,6 +492,7 @@ Tsys_caloff=offsource_caloff_data/sourcecounts_caloff
 
 
 ;uncalibrated vector Tcal and Tsys
+;reversed because channel values are in reverse order from frequency order
 Tcal=reverse(Tcal)
 ;Trx=reverse(Trx)
 Tsys_caloff=reverse(Tsys_caloff)
@@ -533,7 +536,7 @@ TCal_Cal=TCal*fluxT_Vctr
 TSys_Cal=TSys_caloff*fluxT_Vctr
 
 
-;string version of frequencies in GHz
+;string version of frequencies in GHz. for opacity corrections
 freqFC=(findgen(round(max(freqs)-min(freqs)))+min(freqs)+1)/1000.0
 flist=strjoin(string(freqFC,format='(f8.3)'))
 ;flist=strjoin(string((findgen(round(max(freqs)-min(freqs)))+min(freqs)+1)/1000.0,format='(f8.3)'))
@@ -608,12 +611,13 @@ endif else begin
 	free_lun, lun
     endif
 endelse
+
 end
 
 
 
 ;load database vector tcal from the rcvr fits file in /home/gbtdata/
-pro load_db_tcal, infile, colname, buf, ext, tc_freq = tc_freq, tc_temp = tc_temp
+pro load_db_tcal, infile, colname, buf, ext
 ;infile: TCAL fits file /home/gbtdata/[project]/[RcvrX_Y]/Z.fits
 ;colname: column name in fits, e.g. 'LOW_CAL_TEMP'
 ;buf: buffer to save to
