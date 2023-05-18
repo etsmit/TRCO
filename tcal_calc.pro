@@ -596,7 +596,7 @@ show,0
 if write eq 0 then begin
     print,'Freq (GHz)','TCal (K)','TSys (K)',format="(A14,A14,A14)"
     print,'----------','--------','--------',format="(A14,A14,A14)"
-    for ijk=0,n_elements(freqs)-1 do begin
+    for ijk=0ll,n_elements(freqs)-1 do begin
 	print,freqs[ijk]/1000.0,TCal_Cal[ijk],TSys_Cal[ijk],format="(f14.4,f14.3,f14.3)"
     endfor
 endif else begin
