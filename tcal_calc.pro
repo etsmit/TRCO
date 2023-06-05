@@ -1,5 +1,4 @@
 ;calculate TCal
-;ETS 5/3/23
 ;this is hosted at github/etsmit/TRCO
 
 ;==================================================
@@ -411,9 +410,10 @@ end
 ;fileout: text file to write output to
 pro tcal_calc,onscan,offscan,ifnum=ifnum,plnum=plnum,fdnum=fdnum,fileout=fileout
 
-
 write=1
 if (n_elements(fdnum) eq 0) then fdnum = 0
+if (n_elements(plnum) eq 0) then plnum = 0
+if (n_elements(ifnum) eq 0) then ifnum = 0
 if (n_elements(fileout) eq 0) then write = 0
 ;get frequencies
 gettp,onscan,ifnum=ifnum,plnum=plnum,fdnum=fdnum
@@ -597,15 +597,15 @@ if write eq 0 then begin
     print,'Freq (GHz)','TCal (K)','TSys (K)',format="(A14,A14,A14)"
     print,'----------','--------','--------',format="(A14,A14,A14)"
     for ijk=0ll,n_elements(freqs)-1 do begin
-	print,freqs[ijk]/1000.0,TCal_Cal[ijk],TSys_Cal[ijk],format="(f14.4,f14.3,f14.3)"
+	print,freqs[ijk]/1000.0,TCal_Cal[ijk],TSys_Cal[ijk],format="(f14.7,f14.3,f14.3)"
     endfor
 endif else begin
     if write eq 1 then begin
 	openw,lun, fileout, /get_lun
 	printf,lun,'Freq (GHz)','TCal (K)','TSys (K)',format="(A14,A14,A14)"
 	printf,lun,'----------','--------','--------',format="(A14,A14,A14)"
-	for ijk=0,n_elements(freqs)-1 do begin
-	    printf,lun,freqs[ijk]/1000.0,TCal_Cal[ijk],TSys_Cal[ijk],format="(f14.4,f14.3,f14.3)"
+	for ijk=0ll,n_elements(freqs)-1 do begin
+	    printf,lun,freqs[ijk]/1000.0,TCal_Cal[ijk],TSys_Cal[ijk],format="(f14.7,f14.3,f14.3)"
 	endfor
 	close,lun
 	free_lun, lun
