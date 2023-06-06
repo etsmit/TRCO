@@ -628,7 +628,13 @@ tc_freq = tbget(hdr,tcal_data,'FREQUENCY')
 tc_temp = tbget(hdr,tcal_data,colname)
 
 setdata, tc_temp
+
+;setting reference channel to 5
+;engineering Tcals have only tens of frequency channels
+
+!g.s[0].reference_channel = 5
 !g.s[0].reference_frequency = tc_freq[n_elements(tc_freq) - 1 - !g.s[0].reference_channel]
+!g.s[0].frequency_interval = tc_freq[0] - tc_freq[1]
 
 show
 copy,0,buf
