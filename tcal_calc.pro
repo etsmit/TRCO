@@ -399,16 +399,29 @@ end
 
 ;=======================================================================
 ;
-;tcal procedures here
+;Tcal procedures here
 ;
 ;=======================================================================
 
 
-
-;onscan/offscan: scan numbers for on and off positions
-;ifnum/plnum/fdnum: IF window, polarization, feed selection
-;fileout: text file to write output to
+;Perform vector Tcal calculation with calibration. Plots the Tcal in the primary data buffer, with the other databuffers containing: Tcal in buffer 1;  Tsys in buffer 2; Trx in buffer 3
 pro tcal_calc,onscan,offscan,ifnum=ifnum,plnum=plnum,fdnum=fdnum,fileout=fileout
+
+;onscan/offscan:     int/int
+;	- scan numbers for on and off positions.
+
+;ifnum/plnum/fdnum:  int/int/int
+;	- IF window, polarization, feed selection. All default to 0 if not given.
+
+;fileout:            str
+;	- text file to write frequencies, vector Tcal, and vector Tsys to. If not given, will not write an output text file.
+
+
+
+if n_elements(onscan) ne 1 or n_elements(offscan) ne 1 then begin
+  print,'usage:tcal_calc,onscan,offscan,ifnum=ifnum,plnum=plnum,fdnum=fdnum,fileout=fileout'
+  return
+endif
 
 write=1
 if (n_elements(fdnum) eq 0) then fdnum = 0
@@ -416,14 +429,13 @@ if (n_elements(plnum) eq 0) then plnum = 0
 if (n_elements(ifnum) eq 0) then ifnum = 0
 if (n_elements(fileout) eq 0) then write = 0
 ;get frequencies
-gettp,onscan,ifnum=ifnum,plnum=plnum,fdnum=fdnum
+;gettp,onscan,ifnum=ifnum,plnum=plnum,fdnum=fdnum
 
 ;get signal scan, cal on
 onsource_calon_chunk=getchunk(scan=onscan,ifnum=ifnum,plnum=plnum,fdnum=fdnum,sig='T',cal='T',count=nons_con_chunk)
 for ons_con_int=0,nons_con_chunk-1 do accum,dc=onsource_calon_chunk[ons_con_int]
 data_free,onsource_calon_chunk
 ave,/quiet
-;onsource_calon_data=getdata()
 onsource_calon_data=blankMask(getdata())
 
 ;get signal scan, cal off
@@ -431,7 +443,6 @@ onsource_caloff_chunk=getchunk(scan=onscan,ifnum=ifnum,plnum=plnum,fdnum=fdnum,s
 for ons_coff_int=0,nons_coff_chunk-1 do accum,dc=onsource_caloff_chunk[ons_coff_int]
 data_free,onsource_caloff_chunk
 ave,/quiet
-;onsource_caloff_data=getdata()
 onsource_caloff_data=blankMask(getdata())
 
 ;get ref scan, cal on
@@ -439,7 +450,6 @@ offsource_calon_chunk=getchunk(scan=offscan,ifnum=ifnum,plnum=plnum,fdnum=fdnum,
 for offs_con_int=0,noffs_con_chunk-1 do accum,dc=offsource_calon_chunk[offs_con_int]
 data_free,offsource_calon_chunk
 ave,/quiet
-;offsource_calon_data=getdata()
 offsource_calon_data=blankMask(getdata())
 
 ;get ref scan, cal off
@@ -447,7 +457,6 @@ offsource_caloff_chunk=getchunk(scan=offscan,ifnum=ifnum,plnum=plnum,fdnum=fdnum
 for offs_coff_int=0,noffs_coff_chunk-1 do accum,dc=offsource_caloff_chunk[offs_coff_int]
 data_free,offsource_caloff_chunk
 ave,/quiet
-;offsource_caloff_data=getdata()
 offsource_caloff_data=blankMask(getdata())
 
 
@@ -461,7 +470,7 @@ ApEff = getApEff(!g.s[0].elevation,mean(freqs))
 
 
 ;Tcal calculation
-;also find mean/deviation of inner 80%
+;Find mean/deviation of inner 80%
 calcounts_onsource=onsource_calon_data-onsource_caloff_data
 calcounts_offsource=offsource_calon_data-offsource_caloff_data
 sourcecounts_calon=onsource_calon_data-offsource_calon_data
@@ -492,9 +501,7 @@ Tsys_caloff=offsource_caloff_data/sourcecounts_caloff
 
 
 ;uncalibrated vector Tcal and Tsys
-;reversed because channel values are in reverse order from frequency order
 Tcal=reverse(Tcal)
-;Trx=reverse(Trx)
 Tsys_caloff=reverse(Tsys_caloff)
 
 
@@ -539,7 +546,6 @@ TSys_Cal=TSys_caloff*fluxT_Vctr
 ;string version of frequencies in GHz. for opacity corrections
 freqFC=(findgen(round(max(freqs)-min(freqs)))+min(freqs)+1)/1000.0
 flist=strjoin(string(freqFC,format='(f8.3)'))
-;flist=strjoin(string((findgen(round(max(freqs)-min(freqs)))+min(freqs)+1)/1000.0,format='(f8.3)'))
 
 
 ;Opacity corrections
@@ -616,12 +622,20 @@ end
 
 
 
-;load database vector tcal from the rcvr fits file in /home/gbtdata/
+;load database vector tcal from the rcvr fits file in /home/gbtdata/. Plots the database vector Tcal in the primary data buffer and copies it to buffer "buf"
 pro load_db_tcal, infile, colname, buf, ext
-;infile: TCAL fits file /home/gbtdata/[project]/[RcvrX_Y]/Z.fits
-;colname: column name in fits, e.g. 'LOW_CAL_TEMP'
-;buf: buffer to save to
-;ext: extension number in fits file. corresponds to diff pols. use fv to pick the right one
+
+;infile:  str
+;	- TCAL fits file, follows pattern "/home/gbtdata/[project]/[RcvrX_Y]/[Z.fits]"
+
+;colname: str
+;	- column name in fits, e.g. 'LOW_CAL_TEMP'
+
+;buf:     int
+;	- data buffer to save database TCAL to. Keep in mind tcal_calc uses 1,2 and 3 already.
+
+;ext:     int
+;	- extension number in fits file, corresponds to different polarizations/beams. Use fv on the infile and read the headers to make sure you pick the right one.
 
 tcal_data = readfits(infile,hdr,exten_no=ext)
 tc_freq = reverse(tbget(hdr,tcal_data,'FREQUENCY'))
@@ -630,8 +644,7 @@ tc_temp = tbget(hdr,tcal_data,colname)
 setdata, tc_temp
 
 ;setting reference channel to 5
-;engineering Tcals have only tens of frequency channels
-
+;since engineering Tcals have only tens of frequency channels
 !g.s[0].reference_channel = 5
 !g.s[0].reference_frequency = tc_freq[n_elements(tc_freq) - 1 - !g.s[0].reference_channel]
 !g.s[0].frequency_interval = tc_freq[5] - tc_freq[6]
