@@ -468,8 +468,6 @@ freqs = freqs[sort(freqs)]
 fluxS_Vctr = getFluxCalib(!g.s[0].source,freqs)
 ApEff = getApEff(!g.s[0].elevation,mean(freqs))
 
-
-
 ;Tcal calculation
 ;Find mean/deviation of inner 80%
 calcounts_onsource=onsource_calon_data-onsource_caloff_data
@@ -502,8 +500,8 @@ Tsys_caloff=offsource_caloff_data/sourcecounts_caloff
 
 
 ;uncalibrated vector Tcal and Tsys
-Tcal=reverse(Tcal)
-Tsys_caloff=reverse(Tsys_caloff)
+Tcal=Tcal[sort(freqs)]
+Tsys_caloff=Tsys_caloff[sort(freqs)]
 
 
 ;======================
@@ -514,10 +512,10 @@ scannos= [onscan,offscan]
 ;aperture efficiency correction
 ApEffArr=[-1]
 AveElevArr=[-1]
-gettp,scannos[0]
+gettp,scannos[0],ifnum=ifnum,plnum=plnum,fdnum=fdnum
 fluxS_Vctr = getFluxCalib(!g.s[0].source,freqs);*1000.0)
 for ijk=0,n_elements(scannos)-1 do begin
-gettp,scannos[ijk],/quiet
+gettp,scannos[ijk],ifnum=ifnum,plnum=plnum,fdnum=fdnum,/quiet
 ApEff = getApEff(!g.s[0].elevation,mean(freqs))
 ApEffArr=[ApEffArr,ApEff]
 AveElevArr=[AveElevArr,!g.s[0].elevation]
