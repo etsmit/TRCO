@@ -1,4 +1,5 @@
 ;calculate TCal
+;dev version to test changes; once things work again then roll into tcal_calc.pro
 ;this is hosted at github/etsmit/TRCO
 
 ;==================================================
@@ -462,8 +463,9 @@ offsource_caloff_data=blankMask(getdata())
 
 ;get some metadata and numbers for later
 num_chan = n_elements(offsource_caloff_data)
-freqs = chantofreq(!g.s[0],seq(0,num_chan-1))/1.e6
-freqs = freqs[sort(freqs)]
+unsorted_freqs = chantofreq(!g.s[0],seq(0,num_chan-1))/1.e6
+;sort the freq values low to high, but need to keep the sort order for the other vectors
+freqs = unsorted_freqs[sort(unsorted_freqs)]
 fluxS_Vctr = getFluxCalib(!g.s[0].source,freqs)
 ApEff = getApEff(!g.s[0].elevation,mean(freqs))
 
@@ -499,8 +501,8 @@ Tsys_caloff=offsource_caloff_data/sourcecounts_caloff
 
 
 ;uncalibrated vector Tcal and Tsys
-Tcal=Tcal[sort(freqs)]
-Tsys_caloff=Tsys_caloff[sort(freqs)]
+Tcal=Tcal[sort(unsorted_freqs)]
+Tsys_caloff=Tsys_caloff[sort(unsorted_freqs)]
 
 
 ;======================
@@ -537,8 +539,8 @@ fluxT_Vctr = fluxS_Vctr*S_to_T
 ; Airmass is based on an average of the scan elevations
 ; Atmospheric Tsky is also based on an average of the scan elevations
 
-TCal_Cal=TCal*fluxT_Vctr
-TSys_Cal=TSys_caloff*fluxT_Vctr
+TCal_Cal=Tcal*fluxT_Vctr
+TSys_Cal=Tsys_caloff*fluxT_Vctr
 
 
 ;string version of frequencies in GHz. for opacity corrections
@@ -550,7 +552,7 @@ flist=strjoin(string(freqFC,format='(f8.3)'))
 print,'MJD: ',string(!g.s[0].mjd)
 spawn,'~rmaddale/bin/getForecastValues -type Opacity -freqList '+flist+' -timeList '+string(!g.s[0].mjd),result
 Taucoarse=strmid(result,5,10,/reverse_offset)
-Tau=interpol(float(Taucoarse),freqFC*1000.0,Freqs)
+Tau=interpol(float(Taucoarse),freqFC*1000.0,freqs)
 AM=Airmass(AveEl)
 print,'AM:',AM
 
@@ -579,37 +581,35 @@ Tbg=2.73
 Tspill=3.0
 Trx=TSys_Cal-Tsky-Tbg-Tspill
 
-
-
 ;populate data buffers
-setdata, TCal_Cal & !g.s[0].units = 'Tcal (K)'
+;note the re-sorting, this is because no elements keyword is passed to setdata
+setdata, TCal_Cal[sort(unsorted_freqs)] & !g.s[0].units = 'Tcal (K)'
 
 !g.s[0].reference_frequency = (freqs[n_elements(freqs) - 1 - !g.s[0].reference_channel])*1e6
 show
 copy,0,1
-setdata, TSys_Cal & !g.s[0].units = 'Tsys (K)'
+setdata, TSys_Cal[sort(unsorted_freqs)] & !g.s[0].units = 'Tsys (K)'
 copy,0,2
-setdata, TRx & !g.s[0].units = 'Trx (K)'
+setdata, TRx[sort(unsorted_freqs)] & !g.s[0].units = 'Trx (K)'
 copy,0,3
 print,'Tcal in buffer 1;  Tsys in buffer 2; Trx in buffer 3'
 copy, 1,0
 show,0
 
-
 ;write out frequency, Tcal, Tsys to text file
 if write eq 0 then begin
-    print,'Freq (GHz)','TCal (K)','TSys (K)',format="(A14,A14,A14)"
-    print,'----------','--------','--------',format="(A14,A14,A14)"
+    print,'Freq (GHz)','TCal (K)','TSys (K)','Trx (K)',format="(A14,A14,A14,A14)"
+    print,'----------','--------','--------','-------',format="(A14,A14,A14,A14)"
     for ijk=0ll,n_elements(freqs)-1 do begin
-	print,freqs[ijk]/1000.0,TCal_Cal[ijk],TSys_Cal[ijk],format="(f14.7,f14.3,f14.3)"
+	print,freqs[ijk]/1000.0,TCal_Cal[ijk],TSys_Cal[ijk],Trx[ijk],format="(f14.7,f14.3,f14.3,f14.3)"
     endfor
 endif else begin
     if write eq 1 then begin
 	openw,lun, fileout, /get_lun
-	printf,lun,'Freq (GHz)','TCal (K)','TSys (K)',format="(A14,A14,A14)"
-	printf,lun,'----------','--------','--------',format="(A14,A14,A14)"
+	printf,lun,'Freq (GHz)','TCal (K)','TSys (K)','Trx (K)',format="(A14,A14,A14,A14)"
+	printf,lun,'----------','--------','--------','-------',format="(A14,A14,A14,A14)"
 	for ijk=0ll,n_elements(freqs)-1 do begin
-	    printf,lun,freqs[ijk]/1000.0,TCal_Cal[ijk],TSys_Cal[ijk],format="(f14.7,f14.3,f14.3)"
+	    printf,lun,freqs[ijk]/1000.0,TCal_Cal[ijk],TSys_Cal[ijk],Trx[ijk],format="(f14.7,f14.3,f14.3,f14.3)"
 	endfor
 	close,lun
 	free_lun, lun
