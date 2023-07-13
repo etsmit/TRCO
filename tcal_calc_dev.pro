@@ -552,7 +552,6 @@ flist=strjoin(string(freqFC,format='(f8.3)'))
 print,'MJD: ',string(!g.s[0].mjd)
 spawn,'~rmaddale/bin/getForecastValues -type Opacity -freqList '+flist+' -timeList '+string(!g.s[0].mjd),result
 Taucoarse=strmid(result,5,10,/reverse_offset)
-Tau=interpol(float(Taucoarse),freqFC*1000.0,freqs)
 AM=Airmass(AveEl)
 print,'AM:',AM
 
@@ -562,24 +561,27 @@ print,'AM:',AM
 if freqs[0] lt 2000 then begin
 	print,'Some frequencies below 2GHz, replacing some taus with 2GHz value'
 	;if partial freq range under 2
-	tau[0:(where(tau gt -9,count))[0]] = tau[(where(tau gt -9,count))[0]]
+	Taucoarse[0:(where(freqFC gt 2,count))[0]] = Taucoarse[(where(freqFC gt 2,count))[0]]
 endif
 if freqs[n_elements(freqs)-1] lt 2000 then begin
 	;if all freq range under 2
 	print,'All Frequencies below 2GHz, replacing all taus with 2GHz value'
 	spawn,'~rmaddale/bin/getForecastValues -type Opacity -freqList 2 -timeList '+string(!g.s[0].mjd),result
-	tau[0:*] = strmid(result,5,10,/reverse_offset)
+	Taucoarse[0:*] = strmid(result,5,10,/reverse_offset)
 endif
 
-
+Tau=interpol(float(Taucoarse),freqFC*1000.0,freqs)
 TCal_Cal=TCal_Cal/exp(Tau*AM)
 TSys_Cal=TSys_Cal/exp(Tau*AM)
 
+
 spawn,'~rmaddale/bin/getForecastValues -type AtmTsys -freqList '+flist+' -elev '+string(AveEl)+' -timeList '+string(!g.s[0].mjd),result
-Tsky=strmid(result,5,10,/reverse_offset)
+Tskycoarse=strmid(result,5,10,/reverse_offset)
+Tsky=interpol(float(Tskycoarse),freqFC*1000.0,freqs)
 Tbg=2.73
 Tspill=3.0
 Trx=TSys_Cal-Tsky-Tbg-Tspill
+
 
 ;populate data buffers
 ;note the re-sorting, this is because no elements keyword is passed to setdata
@@ -595,6 +597,7 @@ copy,0,3
 print,'Tcal in buffer 1;  Tsys in buffer 2; Trx in buffer 3'
 copy, 1,0
 show,0
+
 
 ;write out frequency, Tcal, Tsys to text file
 if write eq 0 then begin
