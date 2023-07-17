@@ -558,17 +558,21 @@ print,'AM:',AM
 ;check 2GHz and below taus are replaced by a flat value evaluated at 2GHz
 ; Ron's tau calculator only goes down to 2 GHz, so we replace lower frequencies
 ; with flat value at 2 GHz
-if freqs[0] lt 2000 then begin
-	print,'Some frequencies below 2GHz, replacing some taus with 2GHz value'
-	;if partial freq range under 2
-	Taucoarse[0:(where(freqFC gt 2,count))[0]] = Taucoarse[(where(freqFC gt 2,count))[0]]
-endif
-if freqs[n_elements(freqs)-1] lt 2000 then begin
+bot_check = freqs[0] lt 2000
+top_check = freqs[n_elements(freqs)-1] lt 2000
+
+if top_check then begin
 	;if all freq range under 2
 	print,'All Frequencies below 2GHz, replacing all taus with 2GHz value'
 	spawn,'~rmaddale/bin/getForecastValues -type Opacity -freqList 2 -timeList '+string(!g.s[0].mjd),result
 	Taucoarse[0:*] = strmid(result,5,10,/reverse_offset)
+endif else if (bot_check && not top_check) then begin
+	print,'Some frequencies below 2GHz, replacing some taus with 2GHz value'
+	;if partial freq range under 2
+	Taucoarse[0:(where(freqFC gt 2,count))[0]] = Taucoarse[(where(freqFC gt 2,count))[0]]
 endif
+
+
 
 Tau=interpol(float(Taucoarse),freqFC*1000.0,freqs)
 TCal_Cal=TCal_Cal/exp(Tau*AM)
