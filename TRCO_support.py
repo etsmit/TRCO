@@ -55,7 +55,14 @@ def getApEff(elev, freq, coeffs=None):
 
 
 
-
+def AirMass(el):
+    if (el < 28):
+        am = -0.023437  + 1.0140 / np.sin( (np.pi/180.)*(el + 5.1774 / (el + 3.3543) ) )
+        print('A',am)
+    else:
+        am = 1./np.sin(np.pi*el/180.)
+        print('B',am)
+    return am
 
 
 #function ElevFromAirMass, A
