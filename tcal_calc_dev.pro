@@ -12,13 +12,13 @@
 
 ;+
 ; Returns a vector of fluxes for a given vector of frequencies for
-; standard calibrators.
+; standard calibrators. 
 ;
-; <p>Can also be used to generate fluxes for non-standard calibrators.
+; <p>Can also be used to generate fluxes for non-standard calibrators. 
 ;
 ; <p><b>Note: </b>If coeffs is given, then src and specindex are ignored.  If
 ; specindex is given, then src is ignored. src is only used if both
-; specindex and coeffs is not used.
+; specindex and coeffs is not used. 
 ;
 ; <p>Recognized source names are: 3C48, 3C123, 3C147, 3C161, 3C218, 3C227,
 ; 3C249.1, VIRA, 3C286, 3C295, 3C309.1, 3C348, 3C353, NGC7027.
@@ -36,10 +36,10 @@
 ; log(S) = coeff[0] + coeff[1]*log(freq) + coeff[2]*log(freq)^2
 ; @keyword specindex {in}{optional} For a non standard calibrator,
 ; spectral index coefficients to use to determine the flux of a
-; source.  S = specindex[0] * (freq/specindex[1])^(specindex[2])
+; source.  S = specindex[0] * (freq/specindex[1])^(specindex[2]) 
 ; @returns a vector of fluxes at the given frequencies.
 ;
-; @file_comments scalUtils is a collection of routines that return
+; @file_comments scalUtils is a collection of routines that return 
 ; various quantities needed for calibration.  Users will need to look
 ; over and maybe modify getTau and getFluxCalib before using any of
 ; the other scal or getVctr routines.  Contact the contributor for
@@ -63,7 +63,7 @@ function getFluxCalib, src, freq, coeffs=coeffs, specindex=specindex
     f =        [0,            0,         0,          0,         0,            0,         0,          0,         0.0289,    0,         0,         0,          0,        0,          0,        0,        0,        0,          0,        0,        -0.1566,  0,          0,        0,         0       ]
     MhzGhz =   [1000,         1000,      1000,       1000,      1000,         1000,      1000,       1000,      1000,      1,         1000,      1000,       1,        1,          1000,     1000,     1000,     1,          1000,     1000,      1000,    1000,       1000,     1000,      1       ]
     f1 =       [0.2,          0.05,      0.2,        0.05,      0.2,          0.2,       0.2,        0.05,      0.05,      1.4,       0.05,      0.05,       1.4,    1.4,          0.05,     0.05,     0.05,     1.4,        0.2,      0.2,       0.05,    0.05,       0.2,      0.2,      10.5     ]
-    f2 =       [4,           50,         0.5,       50,         2,           50,         4,          4,        50,        10.6,      50,        12,          4.8,    4.8,         12,       50,       50,       32,         12,        0.4,      50,      12,         12,        4,        43.2     ]
+    f2 =       [4,           50,         0.5,       50,         2,           50,         4,          4,        50,        10.6,      50,        12,          4.8,    4.8,         12,       50,       50,       32,         12,        0.4,      50,      12,         12,        4,        43.2     ] 
 
     ; f1, f2 = Frequency limits in GHz
     ; MHzGhz = 1000 if the b,c,d values are for freqs in GHz, = 1 if in MHz
@@ -125,24 +125,24 @@ end
 ;
 ; <p><B>Note: </B>You cannot supply a surface rms without also
 ; supplying a long wavelength efficiency.
-;
+; 
 ; @param freq {in}{required}{type=vector} list of frequencies in MHz for which an opacity is needed
 ; @param elev {in}{required}{type=float} elevation in degrees of the observation
-; @keyword coeffs {in}{optional}{type=vector} coeffs[0] = the long wavelength efficiency (Default : 0.72)
+; @keyword coeffs {in}{optional}{type=vector} coeffs[0] = the long wavelength efficiency (Default : 0.72) 
 ; coeffs[1] = Surface rms in microns (Default : 220 microns)
 ; @returns vector of aperture efficiences at freq
 ;
 ; @examples
 ; <pre>
 ; a = getApEff(45.0, freqs) ; returns the PTCS  model for ap_eff
-; a = getApEff(45.0, freqs, coeffs=[0.69]) ; uses 184 microns but a long-wavelength eff of 69%
+; a = getApEff(45.0, freqs, coeffs=[0.69]) ; uses 184 microns but a long-wavelength eff of 69% 
 ; a = getApEff(45.0, freqs, coeffs=[0.73, 250]) ; uses 250 microns and a long-wavelength eff of 73%
 ; </pre>
 ;
 ;-
 function getApEff, elev, freq, coeffs=coeffs
 
-    ; Default is 71% efficiency at long wavelengths and the current best model for
+    ; Default is 71% efficiency at long wavelengths and the current best model for 
     ; the surface, which has a minimum surface RMS of 220 microns near the rigging angle
     ; and then deteriates away from that angle.
 
@@ -211,7 +211,7 @@ end
 function ElevFromAirMass, A
     ; Reverse calculation
     if (A GT 2.12488) then begin
-       B=-(3.3543 + (180/!pi)*asin(1.0140/(A + 0.023437)))
+       B=-(3.3543 + (180/!pi)*asin(1.0140/(A + 0.023437))) 
        return, ((-B+SQRT(B*B-4*5.1774))/2-3.3543)
     endif else begin
         ; print, 'B', 1./sin(!pi*elev/180.)
@@ -233,7 +233,7 @@ pro Ta2Flux, tau=tau, ap_eff=ap_eff
 
     elev=!g.s[0].elevation
     num_chan = n_elements(getdata(0))
-    freqs = chantofreq(!g.s[0],seq(0,num_chan-1))/1.e6
+    freqs = chantofreq(!g.s[0],seq(0,num_chan-1),frame='TOPO')/1.e6
 
     if n_elements(tau) eq 0 then begin
         tau = getForecastedTau(dateToMJD(!g.s[0].timestamp),!g.s[0].center_frequency/1.e6)
@@ -256,11 +256,11 @@ end
 ;
 ; <p>Only appropriate for freqs < 50 GHz.
 ;
-; <p>The results of Maddalena & Johnson (2005, Bulletin of the American Astronomical
+; <p>The results of Maddalena & Johnson (2005, Bulletin of the American Astronomical 
 ; Society, Vol. 37, p.1438).   The rms uncertainty in my model is 3.5 K
 ;
 ; @param freqs {in}{required}{type=float} list of frequencies in MHz
-; for which an opacity is needed
+; for which an opacity is needed 
 ; @param TempK {in}{requried}{type=float} ground temperature in K
 ;
 ;-
@@ -293,7 +293,7 @@ end
 
 function samplerToIDX, str
 
-    ;
+    ; 
     aa=[   "A1_0","A1_1","A1_2","A1_3","A1_4","A1_5","A1_6","A1_7","A2_0","A2_1","A2_2","A2_3","A2_4","A2_5","A2_6","A2_7"]
     aa=[aa,"B1_0","B1_1","B1_2","B1_3","B1_4","B1_5","B1_6","B1_7","B2_0","B2_1","B2_2","B2_3","B2_4","B2_5","B2_6","B2_7"]
     aa=[aa,"C1_0","C1_1","C1_2","C1_3","C1_4","C1_5","C1_6","C1_7","C2_0","C2_1","C2_2","C2_3","C2_4","C2_5","C2_6","C2_7"]
@@ -319,16 +319,16 @@ end
 
 function cvrtFlux2Ta, flux=flux, tau=tau, ap_eff=ap_eff
 
-    ; Converts a vector of fluxes to a vector of Ta, correcting for atmosphere Tau
+    ; Converts a vector of fluxes to a vector of Ta, correcting for atmosphere Tau 
     ; and aperture effeciency
     ;
     ; Uses the data in DC0 to get the frequency vector.  If flux not provided,
     ; will try to use the source name and catalog of fluxes.  If Tau not given
-    ; uses weather database.  If ap_eff not provided, will use the above model
+    ; uses weather database.  If ap_eff not provided, will use the above model 
 
     elev=!g.s[0].elevation
     num_chan = n_elements(getdata(0))
-    freqs = chantofreq(!g.s[0],seq(0,num_chan-1))/1.e6
+    freqs = chantofreq(!g.s[0],seq(0,num_chan-1),frame='TOPO')/1.e6
 
     if n_elements(flux) eq 0 then flux = getfluxcalib(!g.s[0].source, freqs)
 
@@ -350,15 +350,15 @@ end
 
 function cvrtTa2Flux, Ta, tau=tau, ap_eff=ap_eff
 
-    ; Converts a vector of Ta to a vector of fluxes, correcting for atmosphere Tau
+    ; Converts a vector of Ta to a vector of fluxes, correcting for atmosphere Tau 
     ; and aperture effeciency
     ;
     ; Uses the data in DC0 to get the frequency vector.  If Tau not given
-    ; uses weather database.  If ap_eff not provided, will use the above model
+    ; uses weather database.  If ap_eff not provided, will use the above model 
 
     elev=!g.s[0].elevation
     num_chan = n_elements(getdata(0))
-    freqs = chantofreq(!g.s[0],seq(0,num_chan-1))/1.e6
+    freqs = chantofreq(!g.s[0],seq(0,num_chan-1),frame='TOPO')/1.e6
 
     if n_elements(tau) eq 0 then begin
         tau = getForecastedTau(dateToMJD(!g.s[0].timestamp),!g.s[0].center_frequency/1.e6)
@@ -382,7 +382,7 @@ function blankMask, arr
     ; Replaces with blanks those channels in input vector ARR specified by g.region and
     ; returns the modified vector.
     ; from ron maddalena's nonlinear.pro
-
+    
     if !g.regions[0,0] LT 0 then return, arr
     setdata, arr
     left = 0
@@ -463,7 +463,7 @@ offsource_caloff_data=blankMask(getdata())
 
 ;get some metadata and numbers for later
 num_chan = n_elements(offsource_caloff_data)
-unsorted_freqs = chantofreq(!g.s[0],seq(0,num_chan-1))/1.e6
+unsorted_freqs = chantofreq(!g.s[0],seq(0,num_chan-1),frame='TOPO')/1.e6
 ;sort the freq values low to high, but need to keep the sort order for the other vectors
 freqs = unsorted_freqs[sort(unsorted_freqs)]
 fluxS_Vctr = getFluxCalib(!g.s[0].source,freqs)
@@ -620,7 +620,7 @@ endif else begin
 	endfor
 	close,lun
 	free_lun, lun
-    endif
+    endif 
 endelse
 
 end
@@ -630,7 +630,7 @@ end
 ;load database vector tcal from the rcvr fits file in /home/gbtdata/. Plots the database vector Tcal in the primary data buffer and copies it to buffer "buf"
 pro load_db_tcal, infile, colname, buf, ext
 
-;infile:  str
+;infile:  str 
 ;	- TCAL fits file, follows pattern "/home/gbtdata/[project]/[RcvrX_Y]/[Z.fits]"
 
 ;colname: str
@@ -658,3 +658,8 @@ show
 copy,0,buf
 
 end
+
+
+
+
+

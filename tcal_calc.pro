@@ -232,7 +232,7 @@ pro Ta2Flux, tau=tau, ap_eff=ap_eff
 
     elev=!g.s[0].elevation
     num_chan = n_elements(getdata(0))
-    freqs = chantofreq(!g.s[0],seq(0,num_chan-1))/1.e6
+    freqs = chantofreq(!g.s[0],seq(0,num_chan-1),frame='TOPO')/1.e6
 
     if n_elements(tau) eq 0 then begin
         tau = getForecastedTau(dateToMJD(!g.s[0].timestamp),!g.s[0].center_frequency/1.e6)
@@ -327,7 +327,7 @@ function cvrtFlux2Ta, flux=flux, tau=tau, ap_eff=ap_eff
 
     elev=!g.s[0].elevation
     num_chan = n_elements(getdata(0))
-    freqs = chantofreq(!g.s[0],seq(0,num_chan-1))/1.e6
+    freqs = chantofreq(!g.s[0],seq(0,num_chan-1),frame='TOPO')/1.e6
 
     if n_elements(flux) eq 0 then flux = getfluxcalib(!g.s[0].source, freqs)
 
@@ -357,7 +357,7 @@ function cvrtTa2Flux, Ta, tau=tau, ap_eff=ap_eff
 
     elev=!g.s[0].elevation
     num_chan = n_elements(getdata(0))
-    freqs = chantofreq(!g.s[0],seq(0,num_chan-1))/1.e6
+    freqs = chantofreq(!g.s[0],seq(0,num_chan-1),frame='TOPO')/1.e6
 
     if n_elements(tau) eq 0 then begin
         tau = getForecastedTau(dateToMJD(!g.s[0].timestamp),!g.s[0].center_frequency/1.e6)
@@ -462,7 +462,7 @@ offsource_caloff_data=blankMask(getdata())
 
 ;get some metadata and numbers for later
 num_chan = n_elements(offsource_caloff_data)
-unsorted_freqs = chantofreq(!g.s[0],seq(0,num_chan-1))/1.e6
+unsorted_freqs = chantofreq(!g.s[0],seq(0,num_chan-1),frame='TOPO')/1.e6
 ;sort the freq values low to high, but need to keep the sort order for the other vectors
 freqs = unsorted_freqs[sort(unsorted_freqs)]
 fluxS_Vctr = getFluxCalib(!g.s[0].source,freqs)
